@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { ArrowDown, ArrowUp, Calendar, ChevronDown } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +22,73 @@ export default function AddTransactionScreen() {
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Catégories existantes
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Charger les catégories depuis Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError || !user) return;
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', user.id);
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (err) {
+        setCategories([]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Ajouter une nouvelle catégorie
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer un nom de catégorie');
+      return;
+    }
+    setLoadingCategories(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('Utilisateur non authentifié.');
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          name: newCategoryName,
+          type: type, // ou 'expense'/'income' selon contexte
+          icon: '', // optionnel
+          color: '', // optionnel
+          user_id: user.id,
+        });
+      if (error) throw error;
+      setNewCategoryName('');
+      // Recharger la liste des catégories
+      const { data, error: fetchError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id);
+      if (!fetchError) setCategories(data || []);
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message || 'Impossible d\'ajouter la catégorie');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   // Fonction appelée lors de l'ajout
   const handleSubmit = async () => {
@@ -125,15 +193,37 @@ export default function AddTransactionScreen() {
           />
         </View>
 
-        {/* Catégorie (sélection manuelle à implémenter plus tard) */}
+        {/* Catégorie (combo + ajout) */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Category</Text>
-          <TouchableOpacity style={styles.categoryButton}>
-            <Text style={styles.categoryButtonText}>
-              {category || 'Select category'}
-            </Text>
-            <ChevronDown size={20} color="#64748b" />
-          </TouchableOpacity>
+          <Text style={styles.label}>Catégorie</Text>
+          <View style={{ borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, backgroundColor: '#fff' }}>
+            <Picker
+              selectedValue={category}
+              onValueChange={(itemValue: string) => setCategory(itemValue)}
+              enabled={!loadingCategories && categories.length > 0}
+            >
+              <Picker.Item label={loadingCategories ? 'Chargement...' : 'Sélectionner une catégorie'} value="" />
+              {categories.map((cat) => (
+                <Picker.Item key={cat.id} label={cat.name} value={cat.name} />
+              ))}
+            </Picker>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginRight: 8 }]}
+              value={newCategoryName}
+              onChangeText={setNewCategoryName}
+              placeholder="Nouvelle catégorie"
+              placeholderTextColor="#94a3b8"
+            />
+            <TouchableOpacity
+              style={{ backgroundColor: '#0f766e', borderRadius: 8, padding: 10 }}
+              onPress={handleAddCategory}
+              disabled={loadingCategories}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Ajouter</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Date */}
