@@ -14,10 +14,13 @@ Write-Host "✅ Nettoyage terminé.`n" -ForegroundColor Green
 
 # Installation des dépendances de base
 Write-Host "📦 Installation des dépendances de base..." -ForegroundColor Cyan
+
 npm install #--legacy-peer-deps
-#npm install @supabase/supabase-js
+npm install @supabase/supabase-js
 
 Write-Host "✅ Installation des dépendances de base terminée.`n" -ForegroundColor Green
 
 Write-Host "🚀 Projet EcoFinance prêt à être lancé !" -ForegroundColor Green
 Write-Host "💡 Utilise 'npx expo start' ou 'npx expo start --web --clear' pour démarrer ton projet." -ForegroundColor Yellow
+
+npx expo start --web --clear

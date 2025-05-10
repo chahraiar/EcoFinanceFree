@@ -40,6 +40,12 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Connexion</Text>
+      <TouchableOpacity
+        style={styles.link}
+        onPress={() => router.replace('/register')}
+      >
+        <Text style={styles.linkText}>Pas de compte ? Créer un compte</Text>
+      </TouchableOpacity>
 
       <TextInput
         style={styles.input}
@@ -82,8 +88,16 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#0f172a',
-    marginBottom: 32,
+    marginBottom: 16,
     textAlign: 'center',
+  },
+  link: {
+    marginBottom: 24,
+    alignSelf: 'center',
+  },
+  linkText: {
+    color: '#3b82f6',
+    textDecorationLine: 'underline',
   },
   input: {
     backgroundColor: '#ffffff',
