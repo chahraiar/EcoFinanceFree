@@ -1,7 +1,42 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { AuthService } from './services/auth';
+import { AuthService, supabase } from './services/auth';
+
+// Fonction pour insérer les catégories par défaut pour un nouvel utilisateur
+async function insertDefaultCategories(userId: string) {
+  const defaultCategories = [
+    // Dépenses
+    { name: 'Alimentation', type: 'expense', icon: '🍔', color: '#FFB300' },
+    { name: 'Logement', type: 'expense', icon: '🏠', color: '#1976D2' },
+    { name: 'Transports', type: 'expense', icon: '🚌', color: '#388E3C' },
+    { name: 'Santé', type: 'expense', icon: '💊', color: '#D32F2F' },
+    { name: 'Éducation', type: 'expense', icon: '📚', color: '#512DA8' },
+    { name: 'Loisirs', type: 'expense', icon: '🎮', color: '#FBC02D' },
+    { name: 'Voyages', type: 'expense', icon: '✈️', color: '#0288D1' },
+    { name: 'Shopping', type: 'expense', icon: '🛒', color: '#7B1FA2' },
+    { name: 'Assurances', type: 'expense', icon: '🛡️', color: '#455A64' },
+    { name: 'Téléphone & Internet', type: 'expense', icon: '📱', color: '#0097A7' },
+    { name: 'Impôts & Taxes', type: 'expense', icon: '💸', color: '#C62828' },
+    { name: 'Cadeaux & Dons', type: 'expense', icon: '🎁', color: '#F06292' },
+    { name: 'Enfants', type: 'expense', icon: '🧸', color: '#FBC02D' },
+    { name: 'Animaux', type: 'expense', icon: '🐶', color: '#8D6E63' },
+    { name: 'Autres', type: 'expense', icon: '❓', color: '#BDBDBD' },
+    // Revenus
+    { name: 'Salaire', type: 'income', icon: '💼', color: '#388E3C' },
+    { name: 'Prime', type: 'income', icon: '🏆', color: '#FBC02D' },
+    { name: 'Vente', type: 'income', icon: '🛒', color: '#1976D2' },
+    { name: 'Remboursement', type: 'income', icon: '💳', color: '#0288D1' },
+    { name: 'Investissement', type: 'income', icon: '📈', color: '#512DA8' },
+    { name: 'Autres', type: 'income', icon: '❓', color: '#BDBDBD' },
+  ];
+  for (const cat of defaultCategories) {
+    await supabase.from('categories').insert({
+      ...cat,
+      user_id: userId,
+    });
+  }
+}
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -23,7 +58,10 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      await AuthService.signUp(email, password);
+      const { user } = await AuthService.signUp(email, password);
+      if (user && user.id) {
+        await insertDefaultCategories(user.id);
+      }
       Alert.alert('Succès', 'Un email de confirmation a été envoyé à votre adresse. Veuillez le vérifier pour finaliser votre inscription.');
       router.replace('/login');
     } catch (error: any) {

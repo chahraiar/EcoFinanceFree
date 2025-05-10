@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration Supabase
-const supabase = createClient(
+export const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://zxqqxzueeyqsvxyudkfc.supabase.co',
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'votre_clé_anonyme_supabase'
 );
