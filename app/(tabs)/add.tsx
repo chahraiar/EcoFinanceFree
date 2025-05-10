@@ -5,6 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import { ArrowDown, ArrowUp, Calendar, ChevronDown } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { createClient } from '@supabase/supabase-js';
+import { useAccounts } from './add_account_helpers';
 
 // Initialisation de Supabase avec les variables d'environnement (.env)
 const supabase = createClient(
@@ -24,6 +25,10 @@ export default function AddTransactionScreen() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+
+  // Comptes existants
+  const { accounts, loading: loadingAccounts } = useAccounts();
 
   // Catégories existantes
   const [categories, setCategories] = useState<any[]>([]);
@@ -97,8 +102,8 @@ export default function AddTransactionScreen() {
 
     Alert.alert('Debug', 'Add');
 
-    if (!amount || !description || !category) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+    if (!amount || !description || !category || !selectedAccount) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs, y compris le compte');
       return;
     }
 
@@ -124,6 +129,7 @@ export default function AddTransactionScreen() {
           description,
           category,
           date: new Date(date).toISOString(),
+          account_id: selectedAccount,
         });
 
       if (error) throw error;
@@ -226,6 +232,25 @@ export default function AddTransactionScreen() {
               <Text style={{ color: '#fff', fontWeight: '600' }}>Ajouter</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Compte */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Compte</Text>
+          {loadingAccounts ? (
+            <Text>Chargement des comptes...</Text>
+          ) : (
+            <Picker
+              selectedValue={selectedAccount}
+              onValueChange={setSelectedAccount}
+              style={{ backgroundColor: '#fff', borderRadius: 12 }}
+            >
+              <Picker.Item label="Sélectionnez un compte" value="" />
+              {accounts.map(acc => (
+                <Picker.Item key={acc.id} label={acc.name} value={acc.id} />
+              ))}
+            </Picker>
+          )}
         </View>
 
         {/* Date */}
