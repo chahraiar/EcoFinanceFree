@@ -15,9 +15,10 @@ Write-Host "✅ Nettoyage terminé.`n" -ForegroundColor Green
 # Installation des dépendances de base
 Write-Host "📦 Installation des dépendances de base..." -ForegroundColor Cyan
 
-
-npm install #--legacy-peer-deps
+npm install @react-native-community/datetimepicker
 npm install @supabase/supabase-js
+npm install #--legacy-peer-deps
+
 
 Write-Host "✅ Installation des dépendances de base terminée.`n" -ForegroundColor Green
 

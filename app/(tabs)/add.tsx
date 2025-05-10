@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { ArrowDown, ArrowUp, Calendar, ChevronDown } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -21,6 +22,7 @@ export default function AddTransactionScreen() {
   const [type, setType] = useState<TransactionType>('expense');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Catégories existantes
@@ -229,10 +231,44 @@ export default function AddTransactionScreen() {
         {/* Date */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Date</Text>
-          <TouchableOpacity style={styles.dateButton}>
-            <Calendar size={20} color="#64748b" />
-            <Text style={styles.dateButtonText}>{date}</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'web' ? (
+  <input
+    type="date"
+    value={date}
+    onChange={e => setDate(e.target.value)}
+    style={{
+      padding: 12,
+      borderRadius: 12,
+      border: '1px solid #e2e8f0',
+      fontSize: 16,
+      color: '#0f172a',
+      background: '#fff',
+      width: '100%',
+      marginTop: 4,
+      marginBottom: 4,
+    }}
+  />
+) : (
+  <>
+    <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+      <Calendar size={20} color="#64748b" />
+      <Text style={styles.dateButtonText}>{date}</Text>
+    </TouchableOpacity>
+    {showDatePicker && (
+      <DateTimePicker
+        value={new Date(date)}
+        mode="date"
+        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        onChange={(event, selectedDate) => {
+          setShowDatePicker(false);
+          if (selectedDate) {
+            setDate(selectedDate.toISOString().split('T')[0]);
+          }
+        }}
+      />
+    )}
+  </>
+)}
         </View>
 
         {/* Bouton Ajouter */}

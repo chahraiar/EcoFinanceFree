@@ -1,6 +1,12 @@
 import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react-native';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type Transaction = {
   id: string;
@@ -11,35 +17,46 @@ type Transaction = {
   date: string;
 };
 
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'expense',
-    amount: 42.50,
-    description: 'Courses alimentaires',
-    category: 'Alimentation',
-    date: '2024-02-15'
-  },
-  {
-    id: '2',
-    type: 'income',
-    amount: 2000,
-    description: 'Salaire',
-    category: 'Revenu',
-    date: '2024-02-01'
-  },
-  // Ajoutez d'autres transactions pour les tests
-];
-
 export default function TransactionsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [transactions, setTransactions] = useState(mockTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError || !user) return;
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+        if (error) throw error;
+        setTransactions(data || []);
+      } catch (e) {
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
+
+  const filteredTransactions = transactions.filter((t) =>
+    t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const renderTransaction = ({ item }: { item: Transaction }) => (
     <TouchableOpacity style={styles.transactionItem}>
       <View style={styles.transactionHeader}>
         <Text style={styles.transactionDescription}>{item.description}</Text>
-        <Text 
+        <Text
           style={[
             styles.transactionAmount,
             { color: item.type === 'expense' ? '#dc2626' : '#059669' }
@@ -49,7 +66,7 @@ export default function TransactionsScreen() {
       </View>
       <View style={styles.transactionDetails}>
         <Text style={styles.transactionCategory}>{item.category}</Text>
-        <Text style={styles.transactionDate}>{item.date}</Text>
+        <Text style={styles.transactionDate}>{item.date?.split('T')[0]}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -72,10 +89,11 @@ export default function TransactionsScreen() {
       </View>
 
       <FlatList
-        data={transactions}
+        data={filteredTransactions}
         renderItem={renderTransaction}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={loading ? <Text>Chargement...</Text> : <Text>Aucune transaction</Text>}
       />
     </View>
   );
