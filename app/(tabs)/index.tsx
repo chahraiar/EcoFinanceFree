@@ -1,23 +1,67 @@
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react-native';
+import { useAccounts } from './add_account_helpers';
+import { useTransactions } from './transactions_helpers';
+import { useMemo } from 'react';
+import { Account, Transaction } from '../types';
 
 export default function OverviewScreen() {
+  const { accounts, loading: loadingAccounts } = useAccounts();
+  const { transactions, loading: loadingTransactions } = useTransactions();
+  const loading = loadingAccounts || loadingTransactions;
+
+  // Calculs dynamiques
+  const { totalBalance, accountBalances, income, expenses } = useMemo(() => {
+    if (!accounts || !transactions) return { totalBalance: 0, accountBalances: [], income: 0, expenses: 0 };
+    // Calcul du solde de chaque compte
+    const accountBalances = accounts.map((account: Account) => {
+      const txns = transactions.filter((t: Transaction) => t.account_id === account.id);
+      const txnSum = txns.reduce((sum: number, t: Transaction) => sum + (t.type === 'expense' ? -t.amount : t.amount), 0);
+      return {
+        ...account,
+        balance: account.initial_balance + txnSum,
+      };
+    });
+    const totalBalance = accountBalances.reduce((sum, acc) => sum + acc.balance, 0);
+    // Date du mois courant
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    // Transactions du mois courant
+    const monthTxns = transactions.filter((t: Transaction) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+    const income = monthTxns.filter((t: Transaction) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const expenses = monthTxns.filter((t: Transaction) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    return { totalBalance, accountBalances, income, expenses };
+  }, [accounts, transactions]);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Total Balance</Text>
-        <Text style={styles.balanceAmount}>€24,562.00</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0f766e" />
+        ) : (
+          <Text style={styles.balanceAmount}>
+            €{totalBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
+        )}
         <View style={styles.accountsList}>
-          <View style={styles.accountItem}>
-            <Wallet size={20} color="#0f766e" />
-            <Text style={styles.accountName}>Main Account</Text>
-            <Text style={styles.accountBalance}>€18,245.00</Text>
-          </View>
-          <View style={styles.accountItem}>
-            <Wallet size={20} color="#0f766e" />
-            <Text style={styles.accountName}>Savings</Text>
-            <Text style={styles.accountBalance}>€6,317.00</Text>
-          </View>
+          {loading ? (
+            <ActivityIndicator size="small" color="#0f766e" />
+          ) : (
+            accountBalances.map((acc) => (
+              <View style={styles.accountItem} key={acc.id}>
+                <Wallet size={20} color="#0f766e" />
+                <Text style={styles.accountName}>{acc.name}</Text>
+                <Text style={styles.accountBalance}>
+                  €{acc.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+            ))
+          )}
         </View>
       </View>
 
@@ -27,7 +71,13 @@ export default function OverviewScreen() {
             <ArrowUpRight size={20} color="#059669" />
             <Text style={styles.statLabel}>Income</Text>
           </View>
-          <Text style={styles.statAmount}>€3,240.00</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#059669" />
+          ) : (
+            <Text style={styles.statAmount}>
+              €{income.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+          )}
           <Text style={styles.statPeriod}>This month</Text>
         </View>
 
@@ -36,14 +86,20 @@ export default function OverviewScreen() {
             <ArrowDownRight size={20} color="#dc2626" />
             <Text style={styles.statLabel}>Expenses</Text>
           </View>
-          <Text style={styles.statAmount}>€2,140.00</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#dc2626" />
+          ) : (
+            <Text style={styles.statAmount}>
+              €{expenses.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+          )}
           <Text style={styles.statPeriod}>This month</Text>
         </View>
       </View>
 
       <View style={styles.recentTransactions}>
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
-        {/* Placeholder for recent transactions list */}
+        {/* À compléter : liste des transactions récentes */}
         <Text style={styles.placeholder}>No recent transactions</Text>
       </View>
     </ScrollView>
